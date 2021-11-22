@@ -31,7 +31,21 @@ def initialize_t(model, num_classes, use_pretrained=True, from_last=False):
     if model == 'vit':
 
         # load model and set number of out_features in last layer
-        model_t = timm.create_model(model, pretrained=use_pretrained)
+        model_t = timm.create_model('vit_large_patch16_224_in21k', pretrained=use_pretrained)
+        model_t.head = nn.Linear(model_t.head.in_features, num_classes)
+
+        # load weights if required
+        if from_last == True:
+            if os.path.isfile('experiment/model.pth'):
+                state_dict = torch.load('experiment/model.pth')
+                model_t.load_state_dict(state_dict)
+            else:
+                raise ValueError('Error! Parameter from_last set to True but no weights were found!')
+
+    elif model == 'vit_huge':
+
+        # load model and set number of out_features in last layer
+        model_t = timm.create_model('vit_huge_patch14_224_in21k', pretrained=use_pretrained)
         model_t.head = nn.Linear(model_t.head.in_features, num_classes)
 
         # load weights if required
