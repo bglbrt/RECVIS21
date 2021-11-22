@@ -74,7 +74,7 @@ The options available are:
 
 ## Required libraries
 
-The algorithms and examples detailed in the essay require the following libraries:
+The files present on this repository require the following libraries (also listed in requirements.txt):
  - [NumPy](https://numpy.org)
  - [torch](https://pytorch.org)
  - [torchvision](https://pytorch.org/vision/stable/index.html)
