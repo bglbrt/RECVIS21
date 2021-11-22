@@ -2,42 +2,50 @@
 
 # os libraries
 import os
+import time
+import copy
 import shutil
 import argparse
 
 # numerical and computer vision libraries
+import numpy
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.models as M
+import matplotlib.pyplot as plt
 from torchvision import datasets
-from torch.autograd import Variable
 from tqdm import tqdm
 from PIL import Image
-
-##########
-# SETTINGS
 
 # training settings
 parser = argparse.ArgumentParser(description='RecVis A3 training script')
 parser.add_argument('--data', type=str, default='bird_dataset', metavar='D',
                     help="folder where data is located. train_images/ and val_images/ need to be found in the folder")
 parser.add_argument('--data_cropped', type=str, default='bird_dataset_cropped', metavar='DC',
-                    help="folder where cropped data is located. train_images/ and val_images/ need to be found in the folder")
-parser.add_argument('--batch-size', type=int, default=64, metavar='B',
-                    help='input batch size for training (default: 64)')
-parser.add_argument('--epochs', type=int, default=10, metavar='N',
+                    help="folder where cropped data will be saved")
+parser.add_argument('--model_t', type=str, default='deit', metavar='MT',
+                    help='transformer classification model (default: "deit")')
+parser.add_argument('--from_last', type=bool, default=False, metavar='UP',
+                    help='use already existing weights for initialisation. path must be experiment/model.pth (default: False)')
+parser.add_argument('--model_s', type=str, default='deeplabv3', metavar='MS',
+                    help='segmentation model (default: "deeplabv3")')
+parser.add_argument('--pad', type=int, default=4, metavar='PAD',
+                    help='padding for image cropping (default: 4)')
+parser.add_argument('--batch-size', type=int, default=12, metavar='B',
+                    help='input batch size for training (default: 12)')
+parser.add_argument('--epochs', type=int, default=100, metavar='N',
                     help='number of epochs to train (default: 10)')
-parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
-                    help='learning rate (default: 0.01)')
-parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
-                    help='SGD momentum (default: 0.5)')
+parser.add_argument('--lr', type=float, default=1e-6, metavar='LR',
+                    help='learning rate (default: 1e-6)')
+parser.add_argument('--weight_decay', type=float, default=1e-4, metavar='W',
+                    help='AdamW weight decay (default: 1e-4)')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
-parser.add_argument('--log-interval', type=int, default=10, metavar='N',
-                    help='how many batches to wait before logging training status')
 parser.add_argument('--experiment', type=str, default='experiment', metavar='E',
-                    help='folder where experiment outputs are located.')
+                    help='folder where experiment outputs are located')
+parser.add_argument('--plot', type=bool, default=True, metavar='P',
+                    help='whether to output loss and accuracy per epoch plots or not')
 
 # store training settings
 args = parser.parse_args()
@@ -52,94 +60,86 @@ torch.manual_seed(args.seed)
 if not os.path.isdir(args.experiment):
     os.makedirs(args.experiment)
 
-####################
-# DATA PREPROCESSING
+# import ignore_files
+from utils import ignore_files
 
-# import dependencies
-from preprocess import ignore_files, data_to_list, mask_to_box, segmentation_crop
-
-# copy bird_dataset directory if bird_dataset_cropped does not exist
-if os.path.isfile(args.data_cropped):
-    pass
-else:
+# copy bird_dataset directory if bird_dataset_cropped not already existing
+if not os.path.isdir(args.data_cropped):
     shutil.copytree(args.data, args.data_cropped, ignore=ignore_files)
+
+# import functions to get list of files to crop and function to crop images
+from data import data_to_list, crop_images
 
 # get list of tuples containing file paths for image and cropped image
 in_out_file_paths = data_to_list(args.data, args.data_cropped)
 
-# load FCN ResNet 101 model
-if not len(in_out_file_paths) == 0:
+# import segmentation model initialisatio function
+from models import initialize_s
 
-    fcn = M.segmentation.fcn_resnet101(pretrained=True).eval()
+if len(in_out_file_paths) > 0:
+    model_s = initialize_s(model=args.model_s)
+    crop_images(in_out_file_paths, model_s, use_cuda, pad=args.pad)
 
-    # perform segmentation over all images in train, validation and test datasets
-    n_images = len(in_out_file_paths)
-    counter = 0
-    for image_path, out_image_path in in_out_file_paths:
-
-        # read input image
-        image = Image.open(image_path)
-
-        # crop image w.r.t segmentation
-        out_image = segmentation_crop(image, model=fcn, pad=10)
-
-        # save out_image to out_image_path
-        out_image.save(out_image_path)
-
-        counter += 1
-        print("Cropped segmented image %i/%i (%.1f%%)" % (counter, n_images, 100*(counter/n_images)))
-
-##############
-# DATA LOADING
-
-# import dependencies
+# import data_transforms for training and validation
 from data import data_transforms
 
 # define training data loader
 train_loader = torch.utils.data.DataLoader(
     datasets.ImageFolder(args.data_cropped + '/train_images',
-                         transform=data_transforms['train']),
+                         transform=data_transforms['train_images']),
     batch_size=args.batch_size, shuffle=True, num_workers=1)
 
 # define validation data loader
 val_loader = torch.utils.data.DataLoader(
     datasets.ImageFolder(args.data_cropped + '/val_images',
-                         transform=data_transforms['val']),
+                         transform=data_transforms['val_images']),
     batch_size=args.batch_size, shuffle=False, num_workers=1)
 
-##########
-# TRAINING
+def train(model, dataloaders, loss_function, optimizer, num_epochs):
 
-model_name = "squeezenet"
-num_classes = 20
-batch_size = 2
-num_epochs = 5
-feature_extract = True
+    # store starting time
+    time_begin = time.time()
 
-def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, is_inception=False):
-    since = time.time()
-
+    # intialise lists to store validation and train accuracy and loss
+    train_acc_history = []
     val_acc_history = []
+    train_loss_history = []
+    val_loss_history = []
 
+    # set variable to store model weights
     best_model_wts = copy.deepcopy(model.state_dict())
+
+    # initialise best accuracy
     best_acc = 0.0
 
+    # iterate over each epoch
     for epoch in range(num_epochs):
-        print('Epoch {}/{}'.format(epoch, num_epochs - 1))
-        print('-' * 10)
+        print('Epoch {}/{}'.format(epoch+1, num_epochs))
+        print('-' * (20))
 
-        # Each epoch has a training and validation phase
-        for phase in ['train', 'val']:
-            if phase == 'train':
-                model.train()  # Set model to training mode
+        if (epoch > 0) and (epoch % 50 == 0):
+            model_file = args.experiment + '/model_' + str(epoch) +'.pth'
+            torch.save(best_model_wts, model_file)
+
+        # iterate over train and validation phases
+        for phase in ['train_images', 'val_images']:
+
+            if phase == 'train_images':
+                # set model for training
+                model.train()
+
             else:
-                model.eval()   # Set model to evaluate mode
+                # set model for evaluation
+                model.eval()
 
+            # initialise running loss and number of correct classifications
             running_loss = 0.0
             running_corrects = 0
 
-            # Iterate over data.
+            # iterate over data in batch
             for inputs, labels in dataloaders[phase]:
+
+                # put data on GPU if available
                 inputs = inputs.to(device)
                 labels = labels.to(device)
 
@@ -147,172 +147,103 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, is_ince
                 optimizer.zero_grad()
 
                 # forward
-                # track history if only in train
-                with torch.set_grad_enabled(phase == 'train'):
-                    # Get model outputs and calculate loss
-                    # Special case for inception because in training it has an auxiliary output. In train
-                    #   mode we calculate the loss by summing the final output and the auxiliary output
-                    #   but in testing we only consider the final output.
-                    if is_inception and phase == 'train':
-                        # From https://discuss.pytorch.org/t/how-to-optimize-inception-model-with-auxiliary-classifiers/7958
-                        outputs, aux_outputs = model(inputs)
-                        loss1 = criterion(outputs, labels)
-                        loss2 = criterion(aux_outputs, labels)
-                        loss = loss1 + 0.4*loss2
-                    else:
-                        outputs = model(inputs)
-                        loss = criterion(outputs, labels)
+                with torch.set_grad_enabled(phase == 'train_images'):
 
+                    # compute outputs
+                    outputs = model(inputs)
+
+                    # compute loss function
+                    loss = loss_function(outputs, labels)
+
+                    # compute predictions from outputs
                     _, preds = torch.max(outputs, 1)
 
-                    # backward + optimize only if in training phase
-                    if phase == 'train':
+                    # backward
+                    if phase == 'train_images':
                         loss.backward()
                         optimizer.step()
 
-                # statistics
+                # compute running loss and number of correct classifications
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
 
+            # compute epoch's loss and accuracy
             epoch_loss = running_loss / len(dataloaders[phase].dataset)
             epoch_acc = running_corrects.double() / len(dataloaders[phase].dataset)
 
+            # print epoch's loss and accuracy
             print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 
-            # deep copy the model
-            if phase == 'val' and epoch_acc > best_acc:
+            # update weights if needed
+            if phase == 'val_images' and epoch_acc >= best_acc:
                 best_acc = epoch_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
-            if phase == 'val':
-                val_acc_history.append(epoch_acc)
 
-        print()
+            # update lists of validation and train accuracy and loss
+            if phase == 'val_images':
+                val_acc_history.append(epoch_acc.cpu().numpy())
+                val_loss_history.append(epoch_loss)
 
-    time_elapsed = time.time() - since
+            if phase == "train_images":
+                train_acc_history.append(epoch_acc.cpu().numpy())
+                train_loss_history.append(epoch_loss)
+
+    # printing time since start of training
+    time_elapsed = time.time() - time_begin
     print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-    print('Best val Acc: {:4f}'.format(best_acc))
 
     # load best model weights
     model.load_state_dict(best_model_wts)
-    return model, val_acc_history
 
-def set_parameter_requires_grad(model, feature_extracting):
-    if feature_extracting:
-        for param in model.parameters():
-            param.requires_grad = False
+    return model, train_acc_history, val_acc_history, train_loss_history, val_loss_history
 
-def initialize_model(model_name, num_classes, feature_extract, use_pretrained=True):
-    # Initialize these variables which will be set in this if statement. Each of these
-    #   variables is model specific.
-    model_ft = None
-    input_size = 0
+# import function to initialise transformer model
+from models import num_classes, initialize_t
 
-    if model_name == "resnet":
-        """ Resnet18
-        """
-        model_ft = models.resnet18(pretrained=use_pretrained)
-        set_parameter_requires_grad(model_ft, feature_extract)
-        num_ftrs = model_ft.fc.in_features
-        model_ft.fc = nn.Linear(num_ftrs, num_classes)
-        input_size = 224
+# initialize transformer model
+model_t = initialize_t(model=args.model_t, num_classes = num_classes, use_pretrained=True, from_last=args.from_last)
 
-    elif model_name == "alexnet":
-        """ Alexnet
-        """
-        model_ft = models.alexnet(pretrained=use_pretrained)
-        set_parameter_requires_grad(model_ft, feature_extract)
-        num_ftrs = model_ft.classifier[6].in_features
-        model_ft.classifier[6] = nn.Linear(num_ftrs,num_classes)
-        input_size = 224
+# create training and validation datasets
+image_datasets = {x: datasets.ImageFolder(os.path.join(args.data_cropped, x), data_transforms[x]) for x in ['train_images', 'val_images']}
+# create training and validation dataloaders
+dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=args.batch_size, shuffle=True, num_workers=4) for x in ['train_images', 'val_images']}
 
-    elif model_name == "vgg":
-        """ VGG11_bn
-        """
-        model_ft = models.vgg11_bn(pretrained=use_pretrained)
-        set_parameter_requires_grad(model_ft, feature_extract)
-        num_ftrs = model_ft.classifier[6].in_features
-        model_ft.classifier[6] = nn.Linear(num_ftrs,num_classes)
-        input_size = 224
+# detect if we have a GPU available
+device = torch.device("cuda:0" if use_cuda else "cpu")
 
-    elif model_name == "squeezenet":
-        """ Squeezenet
-        """
-        model_ft = models.squeezenet1_0(pretrained=use_pretrained)
-        set_parameter_requires_grad(model_ft, feature_extract)
-        model_ft.classifier[1] = nn.Conv2d(512, num_classes, kernel_size=(1,1), stride=(1,1))
-        model_ft.num_classes = num_classes
-        input_size = 224
+# send the model to GPU if GPU available
+model_t = model_t.to(device)
 
-    elif model_name == "densenet":
-        """ Densenet
-        """
-        model_ft = models.densenet121(pretrained=use_pretrained)
-        set_parameter_requires_grad(model_ft, feature_extract)
-        num_ftrs = model_ft.classifier.in_features
-        model_ft.classifier = nn.Linear(num_ftrs, num_classes)
-        input_size = 224
+# set optimizer
+optimizer = optim.RAdam(model_t.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
-    elif model_name == "inception":
-        """ Inception v3
-        Be careful, expects (299,299) sized images and has auxiliary output
-        """
-        model_ft = models.inception_v3(pretrained=use_pretrained)
-        set_parameter_requires_grad(model_ft, feature_extract)
-        # Handle the auxilary net
-        num_ftrs = model_ft.AuxLogits.fc.in_features
-        model_ft.AuxLogits.fc = nn.Linear(num_ftrs, num_classes)
-        # Handle the primary net
-        num_ftrs = model_ft.fc.in_features
-        model_ft.fc = nn.Linear(num_ftrs,num_classes)
-        input_size = 299
+# set loss function
+loss_function = nn.CrossEntropyLoss()
 
-    else:
-        print("Invalid model name, exiting...")
-        exit()
+# train model
+model_t, ta, va, tl, vl = train(model_t, dataloaders, loss_function, optimizer, num_epochs=args.epochs)
 
-    return model_ft, input_size
+if args.plot:
 
-# Initialize the model for this run
-model_ft, input_size = initialize_model(model_name, num_classes, feature_extract, use_pretrained=True)
+    # plot loss figure
+    plt.figure(figsize=(8,6))
+    plt.plot(range(len(tl)), tl, label = "Training Loss", color='black', linestyle='dashed')
+    plt.plot(range(len(vl)), vl, label = "Validation Loss", color='black')
+    plt.legend()
+    plt.xlabel("Number of epochs")
+    plt.ylabel("Loss")
+    plt.savefig('loss.png')
 
-# Create training and validation datasets
-image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x]) for x in ['train', 'val']}
-# Create training and validation dataloaders
-dataloaders_dict = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, shuffle=True, num_workers=4) for x in ['train', 'val']}
+    # plot accuracy figure
+    plt.figure(figsize=(8,6))
+    plt.plot(range(len(ta)), ta, label = "Training Accuracy", color='black', linestyle='dashed')
+    plt.plot(range(len(va)), va, label = "Validation Accuracy", color='black')
+    plt.legend()
+    plt.xlabel("Number of epochs")
+    plt.ylabel("Accuracy")
+    plt.savefig('acc.png')
 
-# Detect if we have a GPU available
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-# Send the model to GPU
-model_ft = model_ft.to(device)
-
-# Gather the parameters to be optimized/updated in this run. If we are
-#  finetuning we will be updating all parameters. However, if we are
-#  doing feature extract method, we will only update the parameters
-#  that we have just initialized, i.e. the parameters with requires_grad
-#  is True.
-params_to_update = model_ft.parameters()
-print("Params to learn:")
-if feature_extract:
-    params_to_update = []
-    for name,param in model_ft.named_parameters():
-        if param.requires_grad == True:
-            params_to_update.append(param)
-            print("\t",name)
-else:
-    for name,param in model_ft.named_parameters():
-        if param.requires_grad == True:
-            print("\t",name)
-
-# Observe that all parameters are being optimized
-optimizer_ft = optim.SGD(params_to_update, lr=0.01, momentum=0.9)
-
-# Setup the loss fxn
-criterion = nn.CrossEntropyLoss()
-
-# Train and evaluate
-model_ft, hist = train_model(model_ft, dataloaders_dict, criterion, optimizer_ft, num_epochs=num_epochs, is_inception=(model_name=="inception"))
-
-model_file = args.experiment + '/model_' + str(epoch) + '.pth'
-torch.save(model_ft.state_dict(), model_file)
+# save model weights
+model_file = args.experiment + '/model.pth'
+torch.save(model_t.state_dict(), model_file)
 print('Saved model to ' + model_file + '. You can run `python evaluate.py --model ' + model_file + '` to generate the Kaggle formatted csv file\n')
