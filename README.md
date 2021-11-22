@@ -1,4 +1,4 @@
-# Object Recognition and Computer Vision MVA Project 2021
+# RECVIS MVA Project 2021
 
 The task of the 2021 MVA Object Recognition and Computer Vision (RECVIS) image classification challenge is to correctly classify the species of birds given images.
 
@@ -30,9 +30,8 @@ python main.py
 
 The options available are:
 
-```
   * `--data`:
-    folder where data is located. train_images/ and val_images/ need to be found in the folder
+    folder where data is located (train_images/ and val_images/ need to be found in the folder)
     - default: *bird_dataset*
   * `--data_cropped`:
     folder where cropped data will be saved
@@ -72,15 +71,13 @@ The options available are:
   * `--plot`:
     plotting option for loss and accuracy at each epoch
     - default: *True*
-```
 
 ## Required libraries
 
 The algorithms and examples detailed in the essay require the following libraries:
- - in Python
-	 - [NumPy](https://numpy.org)
-	 - [torch](https://pytorch.org)
-   - [torchvision](https://pytorch.org/vision/stable/index.html)
-   - [timm](https://pypi.org/project/timm/)
-   - [matplotlib](https://matplotlib.org)
-   - [tqdm](https://tqdm.github.io)
+ - [NumPy](https://numpy.org)
+ - [torch](https://pytorch.org)
+ - [torchvision](https://pytorch.org/vision/stable/index.html)
+ - [timm](https://pypi.org/project/timm/)
+ - [matplotlib](https://matplotlib.org)
+ - [tqdm](https://tqdm.github.io)
