@@ -75,10 +75,9 @@ The options available are:
 ## Required libraries
 
 The algorithms and examples detailed in the essay require the following libraries:
- - in Python
-	 - [NumPy](https://numpy.org)
-	 - [torch](https://pytorch.org)
-   - [torchvision](https://pytorch.org/vision/stable/index.html)
-   - [timm](https://pypi.org/project/timm/)
-   - [matplotlib](https://matplotlib.org)
-   - [tqdm](https://tqdm.github.io)
+ - [NumPy](https://numpy.org)
+ - [torch](https://pytorch.org)
+ - [torchvision](https://pytorch.org/vision/stable/index.html)
+ - [timm](https://pypi.org/project/timm/)
+ - [matplotlib](https://matplotlib.org)
+ - [tqdm](https://tqdm.github.io)
