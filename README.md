@@ -1,4 +1,4 @@
-# Object Recognition and Computer Vision MVA Project 2021
+# RECVIS MVA Project 2021
 
 The task of the 2021 MVA Object Recognition and Computer Vision (RECVIS) image classification challenge is to correctly classify the species of birds given images.
 
