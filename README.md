@@ -30,7 +30,6 @@ python main.py
 
 The options available are:
 
-```
   * `--data`:
     folder where data is located. train_images/ and val_images/ need to be found in the folder
     - default: *bird_dataset*
@@ -72,7 +71,6 @@ The options available are:
   * `--plot`:
     plotting option for loss and accuracy at each epoch
     - default: *True*
-```
 
 ## Required libraries
 
