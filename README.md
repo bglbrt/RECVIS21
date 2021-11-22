@@ -31,7 +31,7 @@ python main.py
 The options available are:
 
   * `--data`:
-    folder where data is located. train_images/ and val_images/ need to be found in the folder
+    folder where data is located (train_images/ and val_images/ need to be found in the folder)
     - default: *bird_dataset*
   * `--data_cropped`:
     folder where cropped data will be saved
