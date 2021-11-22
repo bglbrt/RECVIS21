@@ -39,7 +39,7 @@ The options available are:
   * `--model_t`:
     transformer classification model
     - default: *deit*
-    - alternative: *vit*
+    - alternatives: *vit*, *vit_huge*
   * `--from_last`:
     use already existing weights for initialisation
     - default: *False*
