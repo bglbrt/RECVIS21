@@ -38,8 +38,8 @@ The options available are:
     - default: *bird_dataset_cropped*
   * `--model_t`:
     transformer classification model
-    - default: *deit*
-    - alternatives: *vit*, *vit_huge*
+    - default: *deit_224*
+    - alternatives: *vit_224*, *vit_384*
   * `--from_last`:
     use already existing weights for initialisation
     - default: *False*
