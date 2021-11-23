@@ -6,7 +6,7 @@ This repository contains my solution to this challenge. This solution relies hea
 
 ## Data
 
-All data was obtained directly on the [Kaggle competition website](https://www.kaggle.com/c/mva-recvis-2021). No additional data was used to train the model, although the two architectures used for classification are used with pre-trained weights (trained on ImageNet). The provided dataset consists in 1702 images, of which 517 are used for testing, 103 for validation, and 1082 for training. The number of species in the dataset is 20.
+All data was obtained directly on the [Kaggle competition website](https://www.kaggle.com/c/mva-recvis-2021). No additional, external data is used to train the model, but the two architectures used for classification are loaded with pre-trained weights (trained on ImageNet). The provided dataset consists in 1702 images, of which 517 are used for testing, 103 for validation, and 1082 for training. The number of species in the dataset is 20.
 
 ## Usage
 
