@@ -18,7 +18,7 @@ parser.add_argument('--data', type=str, default='bird_dataset', metavar='D',
                     help="folder where data is located. test_images/ need to be found in the folder")
 parser.add_argument('--data_cropped', type=str, default='bird_dataset_cropped', metavar='DC',
                     help="folder where cropped data is located. train_images/ and val_images/ need to be found in the folder")
-parser.add_argument('--model_t', type=str, default='deit_base_patch16_224', metavar='MT',
+parser.add_argument('--model_t', type=str, default='deit', metavar='MT',
                     help='transformer classification model (default: "deit_base_patch16_224")')
 parser.add_argument('--model', type=str, metavar='M',
                     help="the model file to be evaluated. Usually it is of the form model_X.pth")
@@ -71,7 +71,7 @@ for f in tqdm(os.listdir(test_dir)):
         data = data.view(1, data.size(0), data.size(1), data.size(2))
         if use_cuda:
             data = data.cuda()
-        output = model(data)
+        output = model_t(data)
         pred = output.data.max(1, keepdim=True)[1]
         output_file.write("%s,%d\n" % (f[:-4], pred))
 

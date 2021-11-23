@@ -31,7 +31,7 @@ def initialize_t(model, num_classes, use_pretrained=True, from_last=False):
     if model == 'vit':
 
         # load model and set number of out_features in last layer
-        model_t = timm.create_model('vit_large_patch16_224_in21k', pretrained=use_pretrained)
+        model_t = timm.create_model('vit_large_patch16_224', pretrained=use_pretrained)
         model_t.head = nn.Linear(model_t.head.in_features, num_classes)
 
         # load weights if required
