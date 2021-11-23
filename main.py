@@ -32,7 +32,7 @@ parser.add_argument('--model_s', type=str, default='deeplabv3', metavar='MS',
                     help='segmentation model (default: "deeplabv3")')
 parser.add_argument('--pad', type=int, default=4, metavar='PAD',
                     help='padding for image cropping (default: 4)')
-parser.add_argument('--batch-size', type=int, default=12, metavar='B',
+parser.add_argument('--batch_size', type=int, default=12, metavar='B',
                     help='input batch size for training (default: 12)')
 parser.add_argument('--epochs', type=int, default=100, metavar='N',
                     help='number of epochs to train (default: 10)')
@@ -99,6 +99,9 @@ val_loader = torch.utils.data.DataLoader(
     datasets.ImageFolder(args.data_cropped + '/val_images',
                         transform=data_transforms['val_images']),
                     batch_size=args.batch_size, shuffle=False, num_workers=1)
+
+# load dataloaders in dictionary
+dataloaders = {'train_images':train_loader, 'val_images':val_loader}
 
 def train(model, dataloaders, loss_function, optimizer, num_epochs):
 
@@ -177,7 +180,11 @@ def train(model, dataloaders, loss_function, optimizer, num_epochs):
             epoch_acc = running_corrects.double() / len(dataloaders[phase].dataset)
 
             # print epoch's loss and accuracy
-            print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
+            if phase == "train_images":
+                print('Current Train Loss: {:.4f} Acc: {:.4f}'.format(epoch_loss, epoch_acc))
+
+            elif phase == 'val_images':
+                print('Current Validation Loss: {:.4f} Acc: {:.4f}'.format(epoch_loss, epoch_acc))
 
             # update weights if needed
             if phase == 'val_images' and epoch_acc >= best_acc:
@@ -188,8 +195,6 @@ def train(model, dataloaders, loss_function, optimizer, num_epochs):
             if phase == 'val_images':
                 val_acc_history.append(epoch_acc.cpu().numpy())
                 val_loss_history.append(epoch_loss)
-
-            if phase == "train_images":
                 train_acc_history.append(epoch_acc.cpu().numpy())
                 train_loss_history.append(epoch_loss)
 
@@ -207,11 +212,6 @@ from models import num_classes, initialize_t
 
 # initialize transformer model
 model_t = initialize_t(model=args.model_t, num_classes = num_classes, use_pretrained=True, from_last=args.from_last)
-
-# create training and validation datasets
-image_datasets = {x: datasets.ImageFolder(os.path.join(args.data_cropped, x), data_transforms[x]) for x in ['train_images', 'val_images']}
-# create training and validation dataloaders
-dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=args.batch_size, shuffle=True, num_workers=4) for x in ['train_images', 'val_images']}
 
 # detect if we have a GPU available
 device = torch.device("cuda:0" if use_cuda else "cpu")
