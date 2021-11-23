@@ -21,13 +21,13 @@ from PIL import Image
 # training settings
 parser = argparse.ArgumentParser(description='RecVis A3 training script')
 parser.add_argument('--data', type=str, default='bird_dataset', metavar='D',
-                    help="folder where data is located. train_images/ and val_images/ need to be found in the folder")
+                    help="folder where data is located")
 parser.add_argument('--data_cropped', type=str, default='bird_dataset_cropped', metavar='DC',
                     help="folder where cropped data will be saved")
 parser.add_argument('--model_t', type=str, default='deit_224', metavar='MT',
                     help='transformer classification model (default: "deit_224")')
 parser.add_argument('--from_last', type=bool, default=False, metavar='UP',
-                    help='use already existing weights for initialisation. path must be experiment/model.pth (default: False)')
+                    help='use already existing weights for initialisation; path must be experiment/model.pth (default: False)')
 parser.add_argument('--model_s', type=str, default='deeplabv3', metavar='MS',
                     help='segmentation model (default: "deeplabv3")')
 parser.add_argument('--pad', type=int, default=4, metavar='PAD',
