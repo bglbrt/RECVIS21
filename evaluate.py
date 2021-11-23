@@ -18,8 +18,8 @@ parser.add_argument('--data', type=str, default='bird_dataset', metavar='D',
                     help="folder where data is located. test_images/ need to be found in the folder")
 parser.add_argument('--data_cropped', type=str, default='bird_dataset_cropped', metavar='DC',
                     help="folder where cropped data is located. train_images/ and val_images/ need to be found in the folder")
-parser.add_argument('--model_t', type=str, default='deit', metavar='MT',
-                    help='transformer classification model (default: "deit")')
+parser.add_argument('--model_t', type=str, default='deit_224', metavar='MT',
+                    help='transformer classification model (default: "deit_224")')
 parser.add_argument('--model', type=str, metavar='M',
                     help="the model file to be evaluated. Usually it is of the form model_X.pth")
 parser.add_argument('--outfile', type=str, default='experiment/kaggle.csv', metavar='D',
