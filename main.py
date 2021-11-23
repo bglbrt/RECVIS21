@@ -181,10 +181,10 @@ def train(model, dataloaders, loss_function, optimizer, num_epochs):
 
             # print epoch's loss and accuracy
             if phase == "train_images":
-                print('Current Train Loss: {:.4f} Acc: {:.4f}'.format(epoch_loss, epoch_acc))
+                print('Current Train Loss: {:.4f} | Accurracy: {:.4f}'.format(epoch_loss, epoch_acc))
 
             elif phase == 'val_images':
-                print('Current Validation Loss: {:.4f} Acc: {:.4f}'.format(epoch_loss, epoch_acc))
+                print('Current Vali. Loss: {:.4f} | Accuracy: {:.4f}'.format(epoch_loss, epoch_acc))
 
             # update weights if needed
             if phase == 'val_images' and epoch_acc >= best_acc:
