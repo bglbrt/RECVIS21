@@ -48,7 +48,7 @@ The options available are:
     - default: *deeplabv3*
     - alternative: *fcn*
   * `--pad`:
-    padding argument for cropping
+    padding around cropped images
     - default: *4*
   * `--batch_size`:
     batch size
