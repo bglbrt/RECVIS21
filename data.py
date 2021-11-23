@@ -10,7 +10,7 @@ import torchvision.transforms as transforms
 from PIL import Image
 
 # set data transforms for cropping, train and validation phases
-data_transforms = {
+data_transforms_224 = {
     'crop_images': transforms.Compose([
                 transforms.ToTensor(),
                 transforms.Normalize(mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225])
@@ -33,6 +33,34 @@ data_transforms = {
     'val_images' : transforms.Compose([
                 transforms.Resize(224, interpolation=transforms.InterpolationMode.BICUBIC),
                 transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                ])
+                }
+
+data_transforms_384 = {
+    'crop_images': transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225])
+                ]),
+    'train_images' : transforms.Compose([
+                transforms.Resize(384, interpolation=transforms.InterpolationMode.BICUBIC),
+                transforms.RandomCrop(384),
+                transforms.RandomApply([transforms.Resize(96, interpolation=transforms.InterpolationMode.BICUBIC)], p=0.2),
+                transforms.ColorJitter(hue=0),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomVerticalFlip(),
+                transforms.RandomEqualize(p=0.2),
+                transforms.RandomAffine(degrees=120, translate=(0.25, 0.25), shear=45),
+                transforms.RandomPerspective(distortion_scale=0.5),
+                transforms.RandomApply([transforms.GaussianBlur(kernel_size=9, sigma=4)], p=0.3),
+                transforms.Resize((384, 384)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                ]),
+    'val_images' : transforms.Compose([
+                transforms.Resize(384, interpolation=transforms.InterpolationMode.BICUBIC),
+                transforms.CenterCrop(384),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
                 ])
@@ -112,7 +140,7 @@ def segmentation_crop(image, model_s, use_cuda, pad=10):
     '''
 
     # apply transforms
-    image_p = data_transforms['crop_images'](image).unsqueeze(0)
+    image_p = data_transforms_384['crop_images'](image).unsqueeze(0)
 
     if use_cuda:
         image_p = image_p.to('cuda')

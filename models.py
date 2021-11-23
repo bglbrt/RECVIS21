@@ -28,7 +28,7 @@ def initialize_t(model, num_classes, use_pretrained=True, from_last=False):
     '''
 
     # initialise model 'vit_large_patch16_224_in21k'
-    if model == 'vit':
+    if model == 'vit_224':
 
         # load model and set number of out_features in last layer
         model_t = timm.create_model('vit_large_patch16_224', pretrained=use_pretrained)
@@ -42,10 +42,10 @@ def initialize_t(model, num_classes, use_pretrained=True, from_last=False):
             else:
                 raise ValueError('Error! Parameter from_last set to True but no weights were found!')
 
-    elif model == 'vit_huge':
+    elif model == 'vit_384':
 
         # load model and set number of out_features in last layer
-        model_t = timm.create_model('vit_huge_patch14_224_in21k', pretrained=use_pretrained)
+        model_t = timm.create_model('vit_large_patch16_384', pretrained=use_pretrained)
         model_t.head = nn.Linear(model_t.head.in_features, num_classes)
 
         # load weights if required
@@ -57,7 +57,7 @@ def initialize_t(model, num_classes, use_pretrained=True, from_last=False):
                 raise ValueError('Error! Parameter from_last set to True but no weights were found!')
 
     # initialise model 'deit_base_patch16_384'
-    elif model == 'deit':
+    elif model == 'deit_224':
 
         print("here")
         # load model and set number of out_features in last layer

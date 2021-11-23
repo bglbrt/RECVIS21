@@ -50,7 +50,12 @@ else:
     print('Using CPU')
 
 # import data_transforms for evaluation
-from data import data_transforms
+from data import data_transforms_224, data_transforms_384
+
+if args.model_t in ['deit_224', 'vit_224']:
+    data_transforms = data_transforms_224
+elif args.model_t in ['vit_384']:
+    data_transforms = data_transforms_384
 
 # set testing directory
 test_dir = args.data_cropped + '/test_images/mistery_category'

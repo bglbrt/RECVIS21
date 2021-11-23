@@ -24,8 +24,8 @@ parser.add_argument('--data', type=str, default='bird_dataset', metavar='D',
                     help="folder where data is located. train_images/ and val_images/ need to be found in the folder")
 parser.add_argument('--data_cropped', type=str, default='bird_dataset_cropped', metavar='DC',
                     help="folder where cropped data will be saved")
-parser.add_argument('--model_t', type=str, default='deit', metavar='MT',
-                    help='transformer classification model (default: "deit")')
+parser.add_argument('--model_t', type=str, default='deit_224', metavar='MT',
+                    help='transformer classification model (default: "deit_224")')
 parser.add_argument('--from_last', type=bool, default=False, metavar='UP',
                     help='use already existing weights for initialisation. path must be experiment/model.pth (default: False)')
 parser.add_argument('--model_s', type=str, default='deeplabv3', metavar='MS',
@@ -81,19 +81,24 @@ if len(in_out_file_paths) > 0:
     crop_images(in_out_file_paths, model_s, use_cuda, pad=args.pad)
 
 # import data_transforms for training and validation
-from data import data_transforms
+from data import data_transforms_224, data_transforms_384
 
-# define training data loader
+# set size of model input
+if args.model_t in ['deit_224', 'vit_224']:
+    data_transforms = data_transforms_224
+elif args.model_t in ['vit_384']:
+    data_transforms = data_transforms_384
+
 train_loader = torch.utils.data.DataLoader(
     datasets.ImageFolder(args.data_cropped + '/train_images',
-                         transform=data_transforms['train_images']),
-    batch_size=args.batch_size, shuffle=True, num_workers=1)
+                        transform=data_transforms['train_images']),
+                    batch_size=args.batch_size, shuffle=True, num_workers=1)
 
 # define validation data loader
 val_loader = torch.utils.data.DataLoader(
     datasets.ImageFolder(args.data_cropped + '/val_images',
-                         transform=data_transforms['val_images']),
-    batch_size=args.batch_size, shuffle=False, num_workers=1)
+                        transform=data_transforms['val_images']),
+                    batch_size=args.batch_size, shuffle=False, num_workers=1)
 
 def train(model, dataloaders, loss_function, optimizer, num_epochs):
 
