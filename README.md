@@ -28,7 +28,7 @@ Finally, run the model with:
 python main.py
 ```
 
-The options available are:
+The options available for the training script are:
 
   * `--data`:
     folder where data is located (train_images/ and val_images/ need to be found in the folder)
@@ -71,6 +71,31 @@ The options available are:
   * `--plot`:
     plotting option for loss and accuracy at each epoch
     - default: *True*
+
+To evaluate the model saved, run the evaluation script with:
+
+```
+python evaluate.py --model experiment/model.pth
+```
+
+The options available for the evaluation script are:
+
+  * `--data`:
+    folder where data is located (train_images/ and val_images/ need to be found in the folder)
+    - default: *bird_dataset*
+  * `--data_cropped`:
+    folder where cropped data will be saved
+    - default: *bird_dataset_cropped*
+  * `--model_t`:
+    transformer classification model
+    - default: *deit_224*
+    - alternatives: *vit_224*, *vit_384*
+  * `--model`:
+    path to model weights
+    - default: *experiment/model.pth*
+  * `--outfile`:
+    path to the output .csv file
+    - default: *experiment/kaggle.csv*
 
 ## Required libraries
 
