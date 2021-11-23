@@ -15,7 +15,7 @@ import PIL.Image as Image
 # evaluation settings
 parser = argparse.ArgumentParser(description='RecVis A3 evaluation script')
 parser.add_argument('--data', type=str, default='bird_dataset', metavar='D',
-                    help="folder where data is located. test_images/ need to be found in the folder")
+                    help="folder where data is located")
 parser.add_argument('--data_cropped', type=str, default='bird_dataset_cropped', metavar='DC',
                     help="folder where cropped data is located")
 parser.add_argument('--model_t', type=str, default='deit_224', metavar='MT',
