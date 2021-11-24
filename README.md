@@ -2,7 +2,7 @@
 
 The task of the 2021 MVA Object Recognition and Computer Vision (RECVIS) image classification challenge is to correctly classify the species of birds given images.
 
-This repository contains my solution to this challenge. This solution relies heavily on two recent architectures: first, the [DeepLabv3](https://arxiv.org/abs/1706.05587) semantic segmentation architecture introduced by Chen et al., which is used here to identify birds in images and crop the pictures around them; and then the [DeiT](https://arxiv.org/abs/2012.12877) vision transformer model introduced by Touvron et al. which is used as our main classification model along with heavy data augmentation. This solution achieves a 91.6% accuracy on the test set.
+This repository contains my solution to this challenge. This solution relies heavily on two recent architectures: first, the [DeepLabv3](https://arxiv.org/abs/1706.05587) semantic segmentation architecture introduced by Chen et al., which is used here to identify birds in images and crop the pictures around them; and then the [DeiT](https://arxiv.org/abs/2012.12877) vision transformer model introduced by Touvron et al. which is used as our main classification model along with heavy data augmentation. This solution achieves a 90.3% accuracy on the test set.
 
 ## Data
 
